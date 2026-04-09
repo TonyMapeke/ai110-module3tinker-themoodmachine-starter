@@ -10,11 +10,12 @@ This class starts with very simple logic:
 """
 
 from typing import List, Dict, Tuple, Optional
+import re
 
 from dataset import POSITIVE_WORDS, NEGATIVE_WORDS
 
 
-class MoodAnalyzer:
+class MoodAnalyzer: 
     """
     A very simple, rule based mood classifier.
     """
@@ -53,7 +54,26 @@ class MoodAnalyzer:
           - Normalize repeated characters ("soooo" -> "soo")
         """
         cleaned = text.strip().lower()
+
+        # 1) Convert a few common emoticons/emojis into sentiment-like words.
+        # This lets the rest of the rule-based model match against POSITIVE_WORDS /
+        # NEGATIVE_WORDS without needing emoji entries in those word lists.
+        cleaned = re.sub(r":-\)", " happy ", cleaned)
+        cleaned = re.sub(r":\)", " happy ", cleaned)
+        cleaned = re.sub(r":-\(", " sad ", cleaned)
+        cleaned = re.sub(r":\(", " sad ", cleaned)
+
+        cleaned = cleaned.replace("\U0001F602", " happy ")  # 😂
+        cleaned = cleaned.replace("\U0001F972", " sad ")    # 🥲
+        cleaned = cleaned.replace("\U0001F480", " tired ")  # 💀
+
+        # 2) Remove punctuation so "happy!" matches "happy".
+        cleaned = re.sub(r"[^a-z0-9\s]", " ", cleaned)
+
+        # 3) Normalize repeated characters, e.g. "soooo" -> "soo".
+        # Collapse runs of 3+ into 2.
         tokens = cleaned.split()
+        tokens = [re.sub(r"(.)\1{2,}", r"\1\1", tok) for tok in tokens]
 
         return tokens
 
